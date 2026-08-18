@@ -1,15 +1,23 @@
 import { test, expect } from "../../fixtures/base";
-import type { Page, BrowserContext } from "@playwright/test";
 import {
   findInventory,
   getInventoryMovements,
   getAuditLogs,
   assertAdminOrderState,
+  getServerCartTotal,
   ensureServerCartQuantity,
   type OrderEvidence,
 } from "../../helpers/admin-api";
 import { SEED, ORDER_NUMBER_RE, uniqueSuffix } from "../../helpers/data";
-import { clearLocalCartMirror } from "../../helpers/ui";
+import {
+  EMAIL,
+  gotoReady,
+  loginCustomer,
+  clearServerCart,
+  addToCart,
+  ensureAddress,
+  checkoutAndCreateOrder,
+} from "../../helpers/angular-storefront";
 
 /**
  * E9.2 — Migración de `pre-advanced-websites-hypermarket-angular/e2e/checkout.spec.ts`
@@ -17,95 +25,15 @@ import { clearLocalCartMirror } from "../../helpers/ui";
  *   login → catálogo → carrito → checkout (dirección + idempotencia)
  *   → confirmar pedido (pending) → pay (paid) → cancelar (cancelled/refunded)
  *   → historial → detalle. Incluye E3-Integration (verificación admin API).
+ *
+ * E9.3 — P0.1: confirmar un pedido vacía el carrito server (assert API).
  */
-
-const EMAIL = "maria@email.com";
-const PASSWORD = "123456";
-
-async function gotoReady(page: Page, url: string): Promise<void> {
-  await page.goto(url);
-  await page.waitForSelector('html[data-hydrated="true"]', { state: "attached" });
-}
-
-async function loginCustomer(page: Page): Promise<void> {
-  await gotoReady(page, "/login");
-  await page.fill("#login-email", EMAIL);
-  await page.fill("#login-password", PASSWORD);
-  await page.getByRole("button", { name: "Entrar" }).click();
-  await page.waitForURL("**/account");
-}
-
-async function clearServerCart(context: BrowserContext): Promise<void> {
-  const cookies = await context.cookies();
-  const session = cookies.find((c) => c.name === "hypermarket_auth");
-  if (!session) return;
-  try {
-    await fetch("http://localhost:3000/api/cart", {
-      method: "DELETE",
-      headers: { Cookie: `hypermarket_auth=${session.value}` },
-    });
-  } catch {
-    // el limpiado es best-effort
-  }
-}
-
-async function addToCart(page: Page): Promise<void> {
-  await gotoReady(page, `/product/${SEED.productId}`);
-  await page.getByRole("button", { name: /Agregar.*Tablet TCL/ }).first().click();
-  await expect(page.locator(".cart-counter-container").first()).toBeVisible();
-  // E9.2: evitar el doble-add por merge del mirror local (race N2, igual que en
-  // Next). Si el add cae antes del SYNC_OK, localStorage['carrito'] se persiste
-  // y el merge del backend SUMA cantidades; el siguiente full load lo mergea →
-  // 1+1=2. Confirmar el add en la UI y limpiar el mirror (de forma robusta)
-  // para que los full loads posteriores sincronicen (no mergeen) y el server
-  // quede qty=1.
-  await clearLocalCartMirror(page);
-}
-
-async function ensureAddress(page: Page, label: string): Promise<void> {
-  await gotoReady(page, "/addresses");
-  if ((await page.locator(".address-list__item", { hasText: label }).count()) > 0) {
-    return;
-  }
-  await page.getByRole("button", { name: "Agregar dirección" }).first().click();
-  await page.fill("#address-label", label);
-  await page.fill("#address-street", "Calle E2E 123");
-  await page.fill("#address-city", "Santo Domingo");
-  await page.fill("#address-state", "Distrito Nacional");
-  await page.fill("#address-zip", "10101");
-  await page.fill("#address-country", "República Dominicana");
-  await page.getByRole("button", { name: "Guardar dirección" }).click();
-  await expect(page.locator(".address-list__item", { hasText: label })).toBeVisible();
-}
-
-async function checkoutAndCreateOrder(
-  page: Page,
-  addressLabel: string,
-): Promise<{ orderId: string; orderNumber: string }> {
-  await gotoReady(page, "/checkout");
-  await expect(page.getByRole("heading", { name: "Finalizar compra" })).toBeVisible();
-  const ourCard = page.locator(".address-list__item", { hasText: addressLabel });
-  if ((await ourCard.count()) > 0) {
-    await ourCard.click();
-  }
-  const confirmBtn = page.getByRole("button", { name: "Confirmar pedido" });
-  await expect(confirmBtn).toBeEnabled();
-  // E9.2: la orden se crea desde el carrito SERVER. Si el merge N2 dejó un
-  // qty=2 residual en el server tras los full loads, corregirlo a qty=1
-  // (determinista, no depende del race del mirror local).
-  await ensureServerCartQuantity(page.context(), SEED.productId, 1);
-  await confirmBtn.click();
-  await page.waitForURL("**/orders/**");
-  const orderId = new URL(page.url()).pathname.split("/").pop() as string;
-  const orderNumber = (await page.locator(".order-detail__heading").textContent())?.trim() ?? "";
-  return { orderId, orderNumber };
-}
 
 function evidence(orderId: string, orderNumber: string): OrderEvidence {
   return { orderId, orderNumber, productId: SEED.productId, quantity: 1, customerEmail: EMAIL };
 }
 
-test("E3-A guard: /checkout is protected (anonymous → /login?returnUrl=/checkout)", async ({
+test("@p0 E3-A guard: /checkout is protected (anonymous → /login?returnUrl=/checkout)", async ({
   page,
 }) => {
   await gotoReady(page, "/checkout");
@@ -115,7 +43,7 @@ test("E3-A guard: /checkout is protected (anonymous → /login?returnUrl=/checko
   expect(url.searchParams.get("returnUrl")).toBe("/checkout");
 });
 
-test("E3-A: customer flow + E3-Integration (order, stock, movements, audit)", async ({
+test("@p0 E3-A: customer flow + E3-Integration (order, stock, movements, audit)", async ({
   page,
   context,
   adminApi,
@@ -151,6 +79,9 @@ test("E3-A: customer flow + E3-Integration (order, stock, movements, audit)", as
   expect(orderNumber).toMatch(ORDER_NUMBER_RE);
   await expect(page.locator(".order-detail__badge").first()).toHaveText("Pendiente");
   await expect(page.locator(".order-detail__badge--payment")).toHaveText("Pago pendiente");
+
+  // E9.3 P0.1: confirmar el pedido vacía el carrito server (totalItems = 0)
+  expect(await getServerCartTotal(context)).toBe(0);
 
   // E3-Integration: la orden aparece en el dashboard (admin) con pending + items + totales
   const ev = evidence(orderId, orderNumber);
@@ -215,7 +146,7 @@ test("E3-A: customer flow + E3-Integration (order, stock, movements, audit)", as
   await expect(page.locator(".order-detail__badge--payment")).toHaveText("Reembolsado");
 });
 
-test("E3-A: idempotency — retry reuses the SAME idempotencyKey → single order", async ({
+test("@p0 E3-A: idempotency — retry reuses the SAME idempotencyKey → single order", async ({
   page,
   context,
 }) => {
@@ -271,6 +202,9 @@ test("E3-A: idempotency — retry reuses the SAME idempotencyKey → single orde
   expect(postKeys.length).toBeGreaterThanOrEqual(2);
   expect(postKeys[0]).not.toBe("(none)");
   expect(postKeys[0]).toBe(postKeys[1]);
+
+  // E9.3 P0.1: confirmar el pedido vacía el carrito server (totalItems = 0)
+  expect(await getServerCartTotal(context)).toBe(0);
 
   // Historial: exactamente UNA orden con ese orderNumber
   await gotoReady(page, "/orders");

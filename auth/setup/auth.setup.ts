@@ -14,7 +14,7 @@ import { BASE_URLS, CREDENTIALS, AUTH_STATES } from "../../config/env";
  * la autenticación de la infraestructura.
  */
 
-setup("@smoke setup storageState — admin (dashboard)", async ({ page }) => {
+setup("@smoke @p0 setup storageState — admin (dashboard)", async ({ page }) => {
   await page.goto(`${BASE_URLS.dashboard}/login`);
   await page.getByLabel("Correo electrónico", { exact: true }).fill(CREDENTIALS.admin.email);
   await page.getByLabel("Contraseña", { exact: true }).fill(CREDENTIALS.admin.password);
@@ -23,7 +23,7 @@ setup("@smoke setup storageState — admin (dashboard)", async ({ page }) => {
   await page.context().storageState({ path: AUTH_STATES.adminDashboard });
 });
 
-setup("@smoke setup storageState — customer (angular storefront)", async ({ page }) => {
+setup("@smoke @p0 setup storageState — customer (angular storefront)", async ({ page }) => {
   await page.goto(`${BASE_URLS.angular}/login`);
   // SSR: esperar hidratación antes de interactuar; si no, el submit del form
   // dispara una navegación nativa GET (/login?) sin controlador de Angular.
@@ -35,7 +35,7 @@ setup("@smoke setup storageState — customer (angular storefront)", async ({ pa
   await page.context().storageState({ path: AUTH_STATES.customerAngular });
 });
 
-setup("@smoke setup storageState — customer (next storefront)", async ({ page }) => {
+setup("@smoke @p0 setup storageState — customer (next storefront)", async ({ page }) => {
   // Primer request a /es/login: Next compila la ruta. En frío/carga alta un
   // `next dev` puede responder 404 transitorio a una ruta válida; reintentar la
   // navegación hasta obtener una respuesta 2xx/3xx (el server sigue compilando).

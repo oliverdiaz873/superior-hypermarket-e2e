@@ -6,6 +6,7 @@ import {
   getAuditLogs,
   assertAdminOrderState,
   ensureServerCartQuantity,
+  getServerCartTotal,
   type OrderEvidence,
 } from "../../helpers/admin-api";
 import { SEED, ORDER_NUMBER_RE, uniqueSuffix } from "../../helpers/data";
@@ -47,9 +48,15 @@ async function loginCustomer(page: Page): Promise<void> {
   await page.goto("/es/login");
   await page.getByLabel("Correo electrónico").fill(EMAIL);
   await page.getByLabel("Contraseña").fill(PASSWORD);
+  // Esperar a que el botón esté HABILITADO: LoginForm lo deshabilita hasta
+  // completar la hidratación de React. Un click pre-hidratación haría un
+  // submit nativo y el login se perdería en silencio.
+  await expect(page.getByRole("button", { name: "Iniciar sesión" })).toBeEnabled({ timeout: 15_000 });
   await page.getByRole("button", { name: "Iniciar sesión" }).click();
-  await page.waitForURL("**/es**");
-  await page.waitForSelector("header");
+  // Verificar sesión realmente iniciada: el header autenticado expone
+  // "Cerrar sesión". NO usar waitForURL("**/es**") — ese glob también
+  // matchea /es/login y enmascararía un login fallido.
+  await expect(page.getByRole("button", { name: "Cerrar sesión" })).toBeVisible({ timeout: 15_000 });
 }
 
 async function ensureAddress(page: Page, label: string): Promise<void> {
@@ -68,7 +75,7 @@ async function ensureAddress(page: Page, label: string): Promise<void> {
   await expect(page.getByText(label)).toBeVisible({ timeout: 15_000 });
 }
 
-test("checkout → pay → cancel → historial → detalle (E3-N) + E3-Integration", async ({
+test("@p0 checkout → pay → cancel → historial → detalle (E3-N) + E3-Integration", async ({
   page,
   adminApi,
 }) => {
@@ -134,6 +141,9 @@ test("checkout → pay → cancel → historial → detalle (E3-N) + E3-Integrat
   expect(orderNumber).toMatch(ORDER_NUMBER_RE);
   await expect(page.getByText("Pendiente").first()).toBeVisible();
   await expect(page.getByText("Pago pendiente").first()).toBeVisible();
+
+  // E9.3 P0.2: confirmar el pedido vacía el carrito server (totalItems = 0)
+  expect(await getServerCartTotal(page.context())).toBe(0);
 
   // E3-Integration: orden en admin con pending + items + totales
   const ev: OrderEvidence = {

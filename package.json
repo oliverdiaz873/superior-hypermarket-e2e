@@ -9,6 +9,7 @@
     "e2e:next": "playwright test --project=next-storefront",
     "e2e:dashboard": "playwright test --project=dashboard",
     "e2e:smoke": "playwright test --grep @smoke",
+    "e2e:p0": "playwright test --grep @p0",
     "e2e:setup": "playwright test --project=setup",
     "test:e2e": "playwright test"
   },

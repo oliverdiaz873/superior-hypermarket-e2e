@@ -1,7 +1,33 @@
+import fs from "fs";
 import type { APIRequestContext, BrowserContext } from "@playwright/test";
-import { API, CREDENTIALS } from "../config/env";
+import { API, CREDENTIALS, AUTH_STATES } from "../config/env";
 
 export { API };
+
+/** Lee el JWT del storageState del cliente (cookie httpOnly `hypermarket_auth`). */
+export function readCustomerJwt(): string {
+  const raw = fs.readFileSync(AUTH_STATES.customerAngular, "utf-8");
+  const state = JSON.parse(raw) as { cookies?: Array<{ name: string; value: string }> };
+  const cookie = state.cookies?.find((c) => c.name === "hypermarket_auth");
+  if (!cookie) {
+    throw new Error("customer JWT not found in customer.angular.json storageState");
+  }
+  return cookie.value;
+}
+
+/**
+ * Devuelve el total de ítems del carrito SERVER del cliente (fuente de verdad
+ * del pedido). Se usa para verificar que confirmar un pedido vacía el carrito.
+ */
+export async function getServerCartTotal(context: BrowserContext): Promise<number> {
+  const cookies = await context.cookies();
+  const session = cookies.find((c) => c.name === "hypermarket_auth");
+  if (!session) throw new Error("customer cookie (hypermarket_auth) not found");
+  const res = await fetch(`${API}/cart`, { headers: { Cookie: `hypermarket_auth=${session.value}` } });
+  if (!res.ok) throw new Error(`GET /api/cart failed: ${res.status}`);
+  const body = (await res.json()) as { data?: { totalItems?: number } };
+  return body?.data?.totalItems ?? 0;
+}
 
 /**
  * E9.2 — Helpers API centralizados (consolidación de los antiguos
