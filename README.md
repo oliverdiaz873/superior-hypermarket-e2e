@@ -292,3 +292,56 @@ Fix propuesto: esperar `SYNC_OK` antes de permitir el add autenticado, o hacer
 `helpers/ui.ts` `clearLocalCartMirror` + `helpers/admin-api.ts`
 `ensureServerCartQuantity` normalizan el carrito server a la cantidad exacta del
 escenario justo antes de confirmar el pedido, para que la suite sea determinista.
+
+## Defecto corregido (E9.3 P0.4): storefront Next crasheaba productos con imagen subida
+
+**Bug real del storefront Next (ya corregido).** `specs/dashboard/product-publishing.spec.ts`
+(P0.4) verifica de forma ESTRICTA que la imagen carga en ambos storefronts
+(heading visible + `naturalWidth > 0` en Next, `src` + HTTP 200 en Angular).
+
+Cadena del defecto (verificado reproduciendo la lógica exacta de `matchRemotePattern`):
+
+- `backend-advanced-websites-hypermarket-express-mongodb/src/modules/products/presenters/product.presenter.ts`
+  `cacheBust()` añade `?v=<updatedAt>` a la URL pública de toda imagen con `imageKey`.
+- `pre-advanced-websites-hypermarket-next/next.config.ts` configuraba
+  `images.remotePatterns: [new URL('http://localhost:3000/uploads/**')]`. Next
+  normaliza el objeto URL a un RemotePattern destructuring `search` → queda
+  `search: ''` (string vacío, no `undefined`).
+- `next/image` `matchRemotePattern` exige `pattern.search === url.search` cuando
+  `search !== undefined`; `'' !== '?v=...'` → no matchea → error E231
+  ("hostname localhost is not configured") → la página entera cae en el error
+  boundary ("Algo salió mal"); ni el heading del producto renderiza.
+
+Impacto: **todo producto cuyo `imageKey` viniera del dashboard** (upload vía UI)
+rompía la página `/product/:id` del storefront Next. Las imágenes seed (sin
+`?v=`) sí renderizaban.
+
+Fix aplicado (repo Next): `remotePatterns` con forma de objeto sin `search`,
+declarados en `src/lib/image-remote-patterns.ts` (fuente única) e importados en
+`next.config.ts`:
+`{ protocol: 'http', hostname: 'localhost', port: '3000', pathname: '/uploads/**' }`
+(idem para `127.0.0.1`). Regresión automatizada:
+`src/lib/image-remote-patterns.test.ts` valida con `matchRemotePattern` real que
+las URLs con `?v=` matchean y que hosts/puertos/rutas ajenos se rechazan.
+
+Nota P0.4 (fase Angular): la imagen no puede cargarse cross-origin (`:4200` →
+`:3000`) porque helmet del backend responde `Cross-Origin-Resource-Policy:
+same-origin` (`net::ERR_BLOCKED_BY_RESPONSE.NotSameOrigin`); es un artefacto de
+la topología dev (en prod el storefront es same-origin con el backend/CDN), por
+lo que el spec verifica el `src` del `<img>` y la servibilidad HTTP 200 del
+archivo, no `naturalWidth`.
+
+## Defecto corregido (E9.3, full-suite): login pre-hidratación en el storefront Next
+
+Durante la revalidación del harness se detectó un fallo intermitente del
+`specs/next/checkout.spec.ts` (E3-N): el click en "Iniciar sesión" podía ocurrir
+antes de que React hidratara `LoginForm`, disparando un **submit nativo** (GET
+`/es/login?`) que perdía el login en silencio; el helper usaba
+`waitForURL("**/es**")`, un glob que también matchea `/es/login` y enmascaraba
+el fallo (el test seguía anónimo y fallaba después en `/api/cart`).
+
+Fix aplicado (repo Next): `LoginForm` deshabilita el botón submit hasta
+completar la hidratación (`useIsHydrated` vía `useSyncExternalStore`, mismo
+patrón que `useIsMobile`). Fix en el harness: `loginCustomer` ahora espera que
+el botón esté habilitado y que el header autenticado ("Cerrar sesión") sea
+visible — un login fallido falla el test en el paso exacto, sin enmascararse.
