@@ -98,13 +98,15 @@ test("@p0 product publishing: create inactive (dashboard) → activate (API) →
     const before = await ctx.get(`${API}/products/${productId}`);
     expect(before.status()).toBe(404);
 
-    // ---- Activación vía API admin ----
-    // NOTA: no puede hacerse desde la UI. El dashboard lista/edita productos con
-    // GET /api/products (público), que solo devuelve active+available; un
-    // producto inactivo es invisible para la UI (defecto conocido, E9.3 P0.4).
-    const activated = await ctx.patch(`${API}/products/${productId}`, {
+    // ---- Publicación desde el Dashboard ----
+    await page.getByRole("searchbox", { name: "Buscar por nombre…" }).fill(productName);
+    const row = page.locator('tr').filter({ hasText: productName });
+    await expect(row).toBeVisible({ timeout: 15_000 });
+    await row.getByRole('button', { name: 'Publicar' }).click();
+    await expect(page.getByText('Producto publicado')).toBeVisible({ timeout: 15_000 });
+
+    const activated = await ctx.get(`${API}/admin/products/${productId}`, {
       headers: { Authorization: `Bearer ${token}` },
-      data: { status: "active", isAvailable: true },
     });
     expect(activated.ok()).toBeTruthy();
     const activatedBody = (await activated.json()) as {
@@ -128,7 +130,7 @@ test("@p0 product publishing: create inactive (dashboard) → activate (API) →
     // topología dev (storefront :4200 ↔ backend :3000 en orígenes separados),
     // no un defecto del producto: en prod el storefront es same-origin con el
     // backend/CDN. Por eso aquí se verifica la servibilidad a nivel HTTP.
-    const imgResp = await ctx.get(imageUrl);
+    const imgResp = await ctx.get(new URL(imageUrl, API).toString());
     expect(imgResp.status()).toBe(200);
     expect(imgResp.headers()["content-type"]).toContain("image/png");
 
