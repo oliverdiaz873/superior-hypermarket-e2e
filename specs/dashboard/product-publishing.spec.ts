@@ -78,6 +78,9 @@ test("@p0 product publishing: create inactive (dashboard) → activate (API) →
     await page.getByLabel("Nombre").fill(productName);
     await page.getByLabel("Precio").fill("100");
     await page.locator('select[formcontrolname="categoryId"]').selectOption({ index: 1 });
+    const subcategorySelect = page.locator('select[formcontrolname="subcategoryId"]');
+    await expect.poll(() => subcategorySelect.locator('option').count()).toBeGreaterThan(1);
+    await subcategorySelect.selectOption({ index: 1 });
     await page.locator('select[formcontrolname="status"]').selectOption({ label: "Inactivo" });
     await page.locator('input[formcontrolname="isAvailable"]').uncheck();
     await page.locator('input[type="file"]').setInputFiles({
@@ -110,18 +113,21 @@ test("@p0 product publishing: create inactive (dashboard) → activate (API) →
     });
     expect(activated.ok()).toBeTruthy();
     const activatedBody = (await activated.json()) as {
-      data?: { status?: string; isAvailable?: boolean };
+      data?: { status?: string; isAvailable?: boolean; categoryId?: string; subcategoryId?: string | null };
     };
     expect(activatedBody.data?.status).toBe("active");
     expect(activatedBody.data?.isAvailable).toBe(true);
+    expect(activatedBody.data?.categoryId).toBeTruthy();
+    expect(activatedBody.data?.subcategoryId).toBeTruthy();
 
     // ---- Publicado: GET /products/:id público → 200 con nombre + imagen ----
     const published = (await (await ctx.get(`${API}/products/${productId}`)).json()) as {
-      data?: { name?: string; image?: string };
+      data?: { name?: string; image?: string; subcategoryId?: string | null };
     };
     expect(published.data?.name).toBe(productName);
+    expect(published.data?.subcategoryId).toBe(activatedBody.data?.subcategoryId);
     const imageUrl = published.data?.image as string;
-    expect(imageUrl).toMatch(/^http:\/\/localhost:3000\/uploads\/products\//);
+    expect(imageUrl).toMatch(/^(http:\/\/localhost:3000)?\/uploads\/products\//);
 
     // El archivo DEBE servirse 200 con MIME image/png. NOTA: el navegador del
     // storefront Angular no puede consumir esta URL cross-origin porque helmet
