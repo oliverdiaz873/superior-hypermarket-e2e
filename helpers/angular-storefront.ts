@@ -1,4 +1,5 @@
 import { expect, type Page, type BrowserContext } from "@playwright/test";
+import { API } from "../config/env";
 import { SEED } from "./data";
 import { ensureServerCartQuantity } from "./admin-api";
 import { clearLocalCartMirror } from "./ui";
@@ -32,7 +33,7 @@ export async function clearServerCart(context: BrowserContext): Promise<void> {
   const session = cookies.find((c) => c.name === "hypermarket_auth");
   if (!session) return;
   try {
-    await fetch("http://localhost:3000/api/cart", {
+    await fetch(`${API}/cart`, {
       method: "DELETE",
       headers: { Cookie: `hypermarket_auth=${session.value}` },
     });

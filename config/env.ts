@@ -8,10 +8,10 @@ import path from "path";
  */
 
 export const REPOS = {
-  backend: "C:/Users/dell/Desktop/backend-advanced-websites-hypermarket-express-mongodb",
-  angular: "C:/Users/dell/Desktop/pre-advanced-websites-hypermarket-angular",
-  next: "C:/Users/dell/Desktop/pre-advanced-websites-hypermarket-next",
-  dashboard: "C:/Users/dell/Desktop/dashboard-websites-hypermarket",
+  backend: "C:/Users/dell/Desktop/superior-hypermarket-api",
+  angular: "C:/Users/dell/Desktop/superior-hypermarket-storefront-angular",
+  next: "C:/Users/dell/Desktop/superior-hypermarket-storefront-next",
+  dashboard: "C:/Users/dell/Desktop/superior-hypermarket-dashboard",
 } as const;
 
 export const PORTS = {
