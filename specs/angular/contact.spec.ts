@@ -1,4 +1,5 @@
 import { test, expect } from "../../fixtures/base";
+import { API } from "../../config/env";
 import { getContacts } from "../../helpers/admin-api";
 
 /**
@@ -42,7 +43,7 @@ test("E4.5: contact form → POST /api/contact → Mongo → /api/admin/contact 
 
   // 4) Transición admin pending → read
   const patched = await ctx.patch(
-    `http://localhost:3000/api/admin/contact/${found.id}`,
+    `${API}/admin/contact/${found.id}`,
     { headers: { Authorization: `Bearer ${token}` }, data: { status: "read" } },
   );
   expect(patched.ok()).toBeTruthy();
@@ -50,7 +51,7 @@ test("E4.5: contact form → POST /api/contact → Mongo → /api/admin/contact 
 
   // Limpieza: borrado admin para que el test sea repetible
   const deleted = await ctx.delete(
-    `http://localhost:3000/api/admin/contact/${found.id}`,
+    `${API}/admin/contact/${found.id}`,
     { headers: { Authorization: `Bearer ${token}` } },
   );
   expect(deleted.status()).toBe(204);
