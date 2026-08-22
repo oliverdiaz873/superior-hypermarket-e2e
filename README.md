@@ -345,3 +345,5 @@ completar la hidratación (`useIsHydrated` vía `useSyncExternalStore`, mismo
 patrón que `useIsMobile`). Fix en el harness: `loginCustomer` ahora espera que
 el botón esté habilitado y que el header autenticado ("Cerrar sesión") sea
 visible — un login fallido falla el test en el paso exacto, sin enmascararse.
+
+<!-- test: verify branch protection -->
