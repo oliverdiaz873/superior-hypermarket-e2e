@@ -6,12 +6,29 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      consumer_repo:
+        description: 'Repo consumidor que dispara E2E (e.g. oliverdiaz873/superior-hypermarket-api)'
+        required: true
+        type: string
+      head_sha:
+        description: 'SHA exacto del HEAD del PR a validar'
+        required: true
+        type: string
+      head_ref:
+        description: 'Branch del PR del consumidor'
+        required: false
+        type: string
+      pr_number:
+        description: 'Número de PR del consumidor'
+        required: false
+        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: e2e-${{ github.ref }}
+  group: e2e-${{ inputs.consumer_repo != '' && inputs.head_sha != '' && format('{0}-{1}', inputs.consumer_repo, inputs.head_sha) || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -36,11 +53,53 @@ jobs:
       - name: Checkout E2E
         uses: actions/checkout@v4
 
-      - name: Checkout API
+      - name: Generate GitHub App token for Commit Status
+        if: inputs.head_sha != ''
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.E2E_APP_ID }}
+          private-key: ${{ secrets.E2E_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: superior-hypermarket-e2e
+
+      - name: Set Commit Status pending (e2e/17-tests)
+        if: inputs.head_sha != ''
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          gh api --method POST "repos/${{ inputs.consumer_repo }}/statuses/${{ inputs.head_sha }}" \
+            -f state=pending \
+            -f context="e2e/17-tests" \
+            -f description="E2E 17 tests running (PR #${{ inputs.pr_number }})" \
+            -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+      - name: Checkout API @ head_sha (dispatch)
+        if: inputs.head_sha != ''
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.consumer_repo }}
+          ref: ${{ inputs.head_sha }}
+          path: repos/superior-hypermarket-api
+
+      - name: Checkout API (push/pull_request normal)
+        if: inputs.head_sha == ''
         uses: actions/checkout@v4
         with:
           repository: oliverdiaz873/superior-hypermarket-api
           path: repos/superior-hypermarket-api
+
+      - name: Validate API checkout SHA matches head_sha
+        if: inputs.head_sha != ''
+        working-directory: repos/superior-hypermarket-api
+        run: |
+          ACTUAL=$(git rev-parse HEAD)
+          echo "Expected head_sha: ${{ inputs.head_sha }}"
+          echo "Actual HEAD: $ACTUAL"
+          if [ "$ACTUAL" != "${{ inputs.head_sha }}" ]; then
+            echo "::error::Checkout API HEAD ($ACTUAL) != inputs.head_sha (${{ inputs.head_sha }})"
+            exit 1
+          fi
 
       - name: Checkout Angular Storefront
         uses: actions/checkout@v4
@@ -110,3 +169,21 @@ jobs:
           name: test-results
           path: test-results/
           retention-days: 7
+
+      - name: Set Commit Status result (e2e/17-tests)
+        if: ${{ always() && inputs.head_sha != '' }}
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            STATE=success
+            DESC="E2E 17/17 passed"
+          else
+            STATE=failure
+            DESC="E2E failed"
+          fi
+          gh api --method POST "repos/${{ inputs.consumer_repo }}/statuses/${{ inputs.head_sha }}" \
+            -f state=$STATE \
+            -f context="e2e/17-tests" \
+            -f description="$DESC (PR #${{ inputs.pr_number }})" \
+            -f target_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
