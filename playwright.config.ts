@@ -69,7 +69,7 @@ export default defineConfig({
       timeout: 120_000,
     },
     {
-      command: 'cmd /c "rmdir /s /q .next 2>nul & npm run dev"',
+      command: "npm run dev",
       cwd: REPOS.next,
       url: `http://localhost:${PORTS.next}`,
       reuseExistingServer: true,

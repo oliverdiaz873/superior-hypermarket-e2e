@@ -7,11 +7,21 @@ import path from "path";
  * aislamiento y storageStates. Nada se hardcodea fuera de aquí.
  */
 
+const E2E_REPOS_ROOT = process.env.E2E_REPOS_ROOT;
+
 export const REPOS = {
-  backend: "C:/Users/dell/Desktop/superior-hypermarket-api",
-  angular: "C:/Users/dell/Desktop/superior-hypermarket-storefront-angular",
-  next: "C:/Users/dell/Desktop/superior-hypermarket-storefront-next",
-  dashboard: "C:/Users/dell/Desktop/superior-hypermarket-dashboard",
+  backend: E2E_REPOS_ROOT
+    ? path.join(E2E_REPOS_ROOT, "superior-hypermarket-api")
+    : "C:/Users/dell/Desktop/superior-hypermarket-api",
+  angular: E2E_REPOS_ROOT
+    ? path.join(E2E_REPOS_ROOT, "superior-hypermarket-storefront-angular")
+    : "C:/Users/dell/Desktop/superior-hypermarket-storefront-angular",
+  next: E2E_REPOS_ROOT
+    ? path.join(E2E_REPOS_ROOT, "superior-hypermarket-storefront-next")
+    : "C:/Users/dell/Desktop/superior-hypermarket-storefront-next",
+  dashboard: E2E_REPOS_ROOT
+    ? path.join(E2E_REPOS_ROOT, "superior-hypermarket-dashboard")
+    : "C:/Users/dell/Desktop/superior-hypermarket-dashboard",
 } as const;
 
 export const PORTS = {
