@@ -20,7 +20,7 @@ jobs:
     timeout-minutes: 30
     env:
       CI: true
-      E2E_REPOS_ROOT: /home/runner/work
+      E2E_REPOS_ROOT: ${{ github.workspace }}/repos
     services:
       mongodb:
         image: mongo:7
@@ -40,25 +40,25 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: oliverdiaz873/superior-hypermarket-api
-          path: ../../superior-hypermarket-api
+          path: repos/superior-hypermarket-api
 
       - name: Checkout Angular Storefront
         uses: actions/checkout@v4
         with:
           repository: oliverdiaz873/superior-hypermarket-storefront-angular
-          path: ../../superior-hypermarket-storefront-angular
+          path: repos/superior-hypermarket-storefront-angular
 
       - name: Checkout Next Storefront
         uses: actions/checkout@v4
         with:
           repository: oliverdiaz873/superior-hypermarket-storefront-next
-          path: ../../superior-hypermarket-storefront-next
+          path: repos/superior-hypermarket-storefront-next
 
       - name: Checkout Dashboard
         uses: actions/checkout@v4
         with:
           repository: oliverdiaz873/superior-hypermarket-dashboard
-          path: ../../superior-hypermarket-dashboard
+          path: repos/superior-hypermarket-dashboard
 
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
@@ -72,19 +72,19 @@ jobs:
 
       - name: Install API dependencies
         run: npm ci
-        working-directory: ../../superior-hypermarket-api
+        working-directory: repos/superior-hypermarket-api
 
       - name: Install Angular dependencies
         run: npm ci
-        working-directory: ../../superior-hypermarket-storefront-angular
+        working-directory: repos/superior-hypermarket-storefront-angular
 
       - name: Install Next dependencies
         run: npm ci
-        working-directory: ../../superior-hypermarket-storefront-next
+        working-directory: repos/superior-hypermarket-storefront-next
 
       - name: Install Dashboard dependencies
         run: npm ci
-        working-directory: ../../superior-hypermarket-dashboard
+        working-directory: repos/superior-hypermarket-dashboard
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
