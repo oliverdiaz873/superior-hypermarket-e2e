@@ -36,14 +36,16 @@ setup("@smoke @p0 setup storageState — customer (angular storefront)", async (
 });
 
 setup("@smoke @p0 setup storageState — customer (next storefront)", async ({ page }) => {
-  // Primer request a /es/login: Next compila la ruta. En frío/carga alta un
-  // `next dev` puede responder 404 transitorio a una ruta válida; reintentar la
-  // navegación hasta obtener una respuesta 2xx/3xx (el server sigue compilando).
+  // Next dev en frío puede responder 404 mientras compila la ruta [locale]/(shop)/login.
+  // Reintentar hasta que la página deje de ser 404 y el formulario sea accesible.
   let resp: Response | null = null;
-  for (let attempt = 1; attempt <= 3; attempt++) {
+  for (let attempt = 1; attempt <= 5; attempt++) {
     resp = await page.goto(`${BASE_URLS.next}/es/login`);
-    if (resp && resp.status() < 400) break;
-    if (attempt < 3) await page.waitForTimeout(2_000);
+    if (resp && resp.status() < 400) {
+      const is404 = (await page.getByRole("heading", { name: "404" }).count()) > 0;
+      if (!is404) break;
+    }
+    if (attempt < 5) await page.waitForTimeout(5_000);
   }
   // Esperar el input con margen mayor que el actionTimeout por defecto.
   const email = page.getByLabel("Correo electrónico");

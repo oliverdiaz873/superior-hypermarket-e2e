@@ -68,6 +68,7 @@ export const BACKEND_E2E_ENV: Record<string, string> = {
   STORAGE_PROVIDER: "local",
   STORAGE_LOCAL_DIR: ".tmp/e2e-storage",
   STORAGE_PUBLIC_BASE_URL: `http://localhost:${PORTS.backend}`,
+  E2E_DISABLE_AUTH_RATE_LIMIT: "true",
 };
 
 export const AUTH_STATES = {
