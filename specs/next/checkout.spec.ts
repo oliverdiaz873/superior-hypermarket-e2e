@@ -54,9 +54,11 @@ async function loginCustomer(page: Page): Promise<void> {
   await expect(page.getByRole("button", { name: "Iniciar sesión" })).toBeEnabled({ timeout: 15_000 });
   await page.getByRole("button", { name: "Iniciar sesión" }).click();
   // Verificar sesión realmente iniciada: el header autenticado expone
-  // "Cerrar sesión". NO usar waitForURL("**/es**") — ese glob también
-  // matchea /es/login y enmascararía un login fallido.
-  await expect(page.getByRole("button", { name: "Cerrar sesión" })).toBeVisible({ timeout: 15_000 });
+  // "Cerrar sesión" en el banner. Scoping a banner evita strict violation
+  // con el segundo botón "Cerrar sesión" del contenido principal (main).
+  await expect(page.getByRole("banner").getByRole("button", { name: "Cerrar sesión" })).toBeVisible({
+    timeout: 15_000,
+  });
 }
 
 async function ensureAddress(page: Page, label: string): Promise<void> {

@@ -66,14 +66,14 @@ export default defineConfig({
       cwd: REPOS.angular,
       url: `http://localhost:${PORTS.angular}`,
       reuseExistingServer: true,
-      timeout: 120_000,
+      timeout: 180_000,
     },
     {
       command: "npm run dev",
       cwd: REPOS.next,
       url: `http://localhost:${PORTS.next}`,
       reuseExistingServer: true,
-      timeout: 120_000,
+      timeout: 180_000,
       env: {
         PORT: String(PORTS.next),
         NEXT_PUBLIC_API_URL: `http://localhost:${PORTS.backend}/api`,
@@ -86,7 +86,7 @@ export default defineConfig({
       cwd: REPOS.dashboard,
       url: `http://localhost:${PORTS.dashboard}`,
       reuseExistingServer: true,
-      timeout: 120_000,
+      timeout: 180_000,
     },
   ],
 });
