@@ -61,7 +61,9 @@ jobs:
           app-id: ${{ vars.E2E_APP_ID }}
           private-key: ${{ secrets.E2E_APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
-          repositories: superior-hypermarket-e2e
+          repositories: |
+            superior-hypermarket-api
+            superior-hypermarket-e2e
 
       - name: Set Commit Status pending (e2e/17-tests)
         if: inputs.head_sha != ''
