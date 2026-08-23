@@ -5,3 +5,9 @@ blob-report/
 auth/*.json
 .tmp/
 *.log
+
+# Environment / secrets
+.env
+.env.local
+*.pem
+*.key
