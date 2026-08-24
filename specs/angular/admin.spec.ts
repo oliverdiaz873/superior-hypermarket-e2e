@@ -6,7 +6,7 @@ import {
   adjustInventory,
   getInventoryMovements,
   customerLogin,
-  getInventoryList,
+  findInventoryByProductId,
 } from "../../helpers/admin-api";
 import { SEED, uniqueSuffix } from "../../helpers/data";
 
@@ -22,9 +22,7 @@ import { SEED, uniqueSuffix } from "../../helpers/data";
 test("E3-Admin: inventory adjust (increase/decrease) + movements", async ({ adminApi }) => {
   const { ctx, token } = adminApi;
 
-  const list = await getInventoryList(ctx, token);
-  const rec = list.find((i) => i.productId === SEED.inventoryProductId);
-  if (!rec) throw new Error(`inventory record not found for ${SEED.inventoryProductId}`);
+  const rec = await findInventoryByProductId(ctx, token, SEED.inventoryProductId);
   const before = rec.stock;
 
   // Aumentar +5
