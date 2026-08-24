@@ -136,6 +136,20 @@ export async function findInventory(
   return record;
 }
 
+export async function findInventoryByProductId(
+  request: APIRequestContext,
+  token: string,
+  productId: string,
+): Promise<InventoryRecord> {
+  const res = await request.get(`${API}/inventory/product/${productId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok()) {
+    throw new Error(`inventory product ${productId} failed: ${res.status()} ${await res.text()}`);
+  }
+  return (await res.json()).data as InventoryRecord;
+}
+
 export async function adjustInventory(
   request: APIRequestContext,
   token: string,
