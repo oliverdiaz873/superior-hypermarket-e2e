@@ -1,6 +1,6 @@
 import { test, expect } from "../../fixtures/base";
 import {
-  findInventory,
+  findInventoryByProductId,
   getInventoryMovements,
   getAuditLogs,
   assertAdminOrderState,
@@ -52,7 +52,7 @@ test("@p0 E3-A: customer flow + E3-Integration (order, stock, movements, audit)"
   const { ctx, token } = adminApi;
 
   // Inventory baseline ANTES de crear la orden (delta determinista).
-  const baseline = await findInventory(ctx, token, SEED.productId);
+  const baseline = await findInventoryByProductId(ctx, token, SEED.productId);
   const baselineReserved = baseline.reservedStock;
   const baselineStock = baseline.stock;
 
@@ -97,7 +97,7 @@ test("@p0 E3-A: customer flow + E3-Integration (order, stock, movements, audit)"
   }
 
   // E3-Integration: stock reservado (+qty), stock disponible intacto
-  const afterCreate = await findInventory(ctx, token, SEED.productId);
+  const afterCreate = await findInventoryByProductId(ctx, token, SEED.productId);
   expect(afterCreate.reservedStock).toBe(baselineReserved + 1);
   expect(afterCreate.stock).toBe(baselineStock);
 
@@ -114,7 +114,7 @@ test("@p0 E3-A: customer flow + E3-Integration (order, stock, movements, audit)"
     status: "cancelled",
     paymentStatus: "refunded",
   });
-  const afterCancel = await findInventory(ctx, token, SEED.productId);
+  const afterCancel = await findInventoryByProductId(ctx, token, SEED.productId);
   expect(afterCancel.reservedStock).toBe(baselineReserved);
 
   // Movimientos de inventario: reserve + release_reservation vinculados a la orden
