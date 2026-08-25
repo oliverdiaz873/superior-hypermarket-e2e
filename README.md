@@ -237,10 +237,13 @@ El repo define actualmente dos niveles de ejecución (no existen P0–P3):
 
 ## CI
 
-El CI **todavía no está implementado** (no existe workflow en este repo).
-Forma parte de una fase futura. La configuración ya reacciona a `process.env.CI`
-(`retries`, `forbidOnly`, reporter HTML), pero eso no debe leerse como una
-capacidad de CI existente.
+CI/CD E2E **implementado** vía `.github/workflows/e2e.yml` (`workflow_dispatch` + `push`/`pull_request` en `main`).
+
+* Levanta backend (`hypermarket_e2e` + `STORAGE_LOCAL_DIR=.tmp/e2e-storage`) + Angular `:4200` + Next `:3001` + Dashboard `:4201` + `MongoDB 7` y ejecuta `npx tsc --noEmit` + `npm run e2e` (17 tests, `workers:1`, `retries:2` en CI, `trace/screenshot/video retain-on-failure`).
+* Para PRs de `superior-hypermarket-api`, `trigger-e2e.yml` dispara `workflow_dispatch` con `consumer_repo/head_sha` (`pull_request.head.sha`), valida `git rev-parse HEAD == head_sha` y publica **Commit Status** `e2e/17-tests` (`pending` → `success 17/17` / `failure`) vía GitHub App (`vars.E2E_APP_ID` / `secrets.E2E_APP_PRIVATE_KEY`).
+* Branch Protection `main-protection` en `superior-hypermarket-api` requiere `e2e/17-tests` + `lint-test-build` `strict:true` + `1 approval` + `Block force pushes`.
+
+Documentación técnica completa: `docs/ci-cd/e2e-quality-gate.md`.
 
 ## Comandos
 

@@ -1,7 +1,7 @@
 import { test, expect } from "../../fixtures/base";
 import type { Page } from "@playwright/test";
 import {
-  findInventory,
+  findInventoryByProductId,
   getInventoryMovements,
   getAuditLogs,
   assertAdminOrderState,
@@ -85,7 +85,7 @@ test("@p0 checkout → pay → cancel → historial → detalle (E3-N) + E3-Inte
   const { ctx, token } = adminApi;
 
   // Sesión admin para la verificación E3-Integration
-  const baseline = await findInventory(ctx, token, SEED.productId);
+  const baseline = await findInventoryByProductId(ctx, token, SEED.productId);
 
   // 1) Login real vía UI
   await loginCustomer(page);
@@ -167,7 +167,7 @@ test("@p0 checkout → pay → cancel → historial → detalle (E3-N) + E3-Inte
   }
 
   // E3-Integration: stock reservado (+1), stock disponible intacto
-  const afterCreate = await findInventory(ctx, token, SEED.productId);
+  const afterCreate = await findInventoryByProductId(ctx, token, SEED.productId);
   expect(afterCreate.reservedStock).toBe(baseline.reservedStock + 1);
   expect(afterCreate.stock).toBe(baseline.stock);
 
@@ -188,7 +188,7 @@ test("@p0 checkout → pay → cancel → historial → detalle (E3-N) + E3-Inte
     status: "cancelled",
     paymentStatus: "refunded",
   });
-  const afterCancel = await findInventory(ctx, token, SEED.productId);
+  const afterCancel = await findInventoryByProductId(ctx, token, SEED.productId);
   expect(afterCancel.reservedStock).toBe(baseline.reservedStock);
 
   // E3-Integration: movimientos reserve + release_reservation vinculados a la orden
