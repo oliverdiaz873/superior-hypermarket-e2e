@@ -1,3 +1,4 @@
+import path from "path";
 import { spawnSync } from "child_process";
 import { REPOS, E2E_MONGODB_URI, E2E_DB_NAME, BACKEND_E2E_ENV } from "./config/env";
 
@@ -51,7 +52,7 @@ export default async function globalSetup(): Promise<void> {
     env: {
       ...process.env,
       ...BACKEND_E2E_ENV,
-      IMAGE_SOURCE_DIR: "C:/Users/dell/Desktop/superior-hypermarket-storefront-next/public/assets/images/productos",
+      IMAGE_SOURCE_DIR: path.join(REPOS.next, "public", "assets", "images", "productos"),
     },
     encoding: "utf8",
     shell: true,
