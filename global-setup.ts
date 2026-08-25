@@ -1,3 +1,4 @@
+import path from "path";
 import { spawnSync } from "child_process";
 import { REPOS, E2E_MONGODB_URI, E2E_DB_NAME, BACKEND_E2E_ENV } from "./config/env";
 
@@ -45,4 +46,30 @@ export default async function globalSetup(): Promise<void> {
   }
 
   console.log("[E9.2] clear:seed OK — BD E2E sembrada desde cero");
+
+  const storageRes = spawnSync(npmCmd, ["run", "seed:storage"], {
+    cwd: REPOS.backend,
+    env: {
+      ...process.env,
+      ...BACKEND_E2E_ENV,
+      IMAGE_SOURCE_DIR: path.join(REPOS.next, "public", "assets", "images", "productos"),
+    },
+    encoding: "utf8",
+    shell: true,
+    windowsHide: true,
+  });
+
+  if (storageRes.error) {
+    throw new Error(`[E9.2] seed:storage spawn falló: ${storageRes.error.message}`);
+  }
+  if (storageRes.status !== 0) {
+    if (storageRes.stdout) console.error(storageRes.stdout);
+    if (storageRes.stderr) console.error(storageRes.stderr);
+    throw new Error(
+      `[E9.2] seed:storage falló con status ${storageRes.status}. ` +
+        "¿Existe IMAGE_SOURCE_DIR? ¿Está STORAGE_LOCAL_DIR accesible?",
+    );
+  }
+
+  console.log("[E9.2] seed:storage OK — storage E2E provisionado");
 }

@@ -1,21 +1,22 @@
 {
-  "name": "hypermarket-superior-e2e",
-  "version": "0.1.0",
-  "private": true,
-  "description": "Harness E2E Playwright del ecosistema Hipermercado Superior (backend + dashboard + angular storefront + next storefront)",
-  "scripts": {
-    "e2e": "playwright test",
-    "e2e:angular": "playwright test --project=angular-storefront",
-    "e2e:next": "playwright test --project=next-storefront",
-    "e2e:dashboard": "playwright test --project=dashboard",
-    "e2e:smoke": "playwright test --grep @smoke",
-    "e2e:p0": "playwright test --grep @p0",
-    "e2e:setup": "playwright test --project=setup",
-    "test:e2e": "playwright test"
-  },
-  "devDependencies": {
-    "@playwright/test": "^1.62.1",
-    "@types/node": "^22.10.2",
-    "typescript": "^5.6.3"
-  }
+    "name":  "hypermarket-superior-e2e",
+    "version":  "0.1.0",
+    "private":  true,
+    "description":  "Harness E2E Playwright del ecosistema Hipermercado Superior (backend + dashboard + angular storefront + next storefront)",
+    "scripts":  {
+                    "e2e":  "playwright test",
+                    "e2e:angular":  "playwright test --project=angular-storefront",
+                    "e2e:next":  "playwright test --project=next-storefront",
+                    "e2e:dashboard":  "playwright test --project=dashboard",
+                    "e2e:smoke":  "playwright test --grep @smoke",
+                    "e2e:p0":  "playwright test --grep @p0",
+                    "e2e:setup":  "playwright test --project=setup",
+                    "test:e2e":  "playwright test",
+                    "mcp:start":  "npx @playwright/mcp@latest --config mcp.config.json"
+                },
+    "devDependencies":  {
+                            "@playwright/test":  "^1.62.1",
+                            "@types/node":  "^22.10.2",
+                            "typescript":  "^5.6.3"
+                        }
 }

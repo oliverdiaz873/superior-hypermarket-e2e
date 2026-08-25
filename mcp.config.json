@@ -1,0 +1,7 @@
+{
+  "capabilities": ["core"],
+  "browser": {
+    "browserName": "chromium"
+  },
+  "outputDir": ".tmp/mcp-output"
+}
