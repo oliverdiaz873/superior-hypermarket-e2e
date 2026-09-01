@@ -1,7 +1,7 @@
 import { expect, type Page, type BrowserContext } from "@playwright/test";
 import { API } from "../config/env";
 import { SEED } from "./data";
-import { ensureServerCartQuantity } from "./admin-api";
+import { ensureServerCartQuantity, getServerCartTotal } from "./admin-api";
 import { clearLocalCartMirror } from "./ui";
 
 /**
@@ -87,7 +87,25 @@ export async function checkoutAndCreateOrder(
   // qty=2 residual en el server tras los full loads, corregirlo a qty=1
   // (determinista, no depende del race del mirror local).
   await ensureServerCartQuantity(page.context(), SEED.productId, 1);
+  // Verificar que el carrito server tiene el producto antes de confirmar
+  const serverCartTotal = await getServerCartTotal(page.context());
+  if (serverCartTotal === 0) {
+    throw new Error(`Server cart is empty before confirming order. Expected qty=1 for product ${SEED.productId}`);
+  }
+
+  // Capturar la respuesta del POST /api/orders para diagnóstico
+  const orderPromise = page.waitForResponse(
+    (response) => response.url().includes("/api/orders") && response.request().method() === "POST",
+    { timeout: 15_000 }
+  );
+
   await confirmBtn.click();
+  const orderResponse = await orderPromise;
+  if (!orderResponse.ok()) {
+    const body = await orderResponse.text();
+    throw new Error(`POST /api/orders failed with status ${orderResponse.status()}: ${body}`);
+  }
+
   await page.waitForURL("**/orders/**");
   const orderId = new URL(page.url()).pathname.split("/").pop() as string;
   const orderNumber = (await page.locator(".order-detail__heading").textContent())?.trim() ?? "";
