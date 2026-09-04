@@ -1,4 +1,4 @@
-import { test as setup, expect, type Response } from "@playwright/test";
+﻿import { test as setup, expect } from "@playwright/test";
 import { BASE_URLS, CREDENTIALS, AUTH_STATES } from "../../config/env";
 
 /**
@@ -36,20 +36,29 @@ setup("@smoke @p0 setup storageState — customer (angular storefront)", async (
 });
 
 setup("@smoke @p0 setup storageState — customer (next storefront)", async ({ page }) => {
-  // Next dev en frío puede responder 404 mientras compila la ruta [locale]/(shop)/login.
-  // Reintentar hasta que la página deje de ser 404 y el formulario sea accesible.
-  let resp: Response | null = null;
-  for (let attempt = 1; attempt <= 5; attempt++) {
-    resp = await page.goto(`${BASE_URLS.next}/es/login`);
-    if (resp && resp.status() < 400) {
-      const is404 = (await page.getByRole("heading", { name: "404" }).count()) > 0;
-      if (!is404) break;
+  // Next dev en frío sirve la ruta /es/login con HTTP 200 aunque la compile
+  // on-demand; durante ese tiempo puede mostrar una página 404 interna.
+  // Estrategia: intentar goto y esperar el input del email con un timeout corto;
+  // si no aparece, volver a navegar. Presupuesto: 12 intentos × ~15 s ≈ 3 min.
+  const loginUrl = `${BASE_URLS.next}/es/login`;
+  let ready = false;
+  for (let attempt = 1; attempt <= 12; attempt++) {
+    await page.goto(loginUrl);
+    try {
+      await page.getByLabel("Correo electrónico").waitFor({ state: "visible", timeout: 15_000 });
+      ready = true;
+      break;
+    } catch {
+      // Página aún compilando o mostrando 404 — reintentar.
+      if (attempt < 12) await page.waitForTimeout(10_000);
     }
-    if (attempt < 5) await page.waitForTimeout(5_000);
   }
-  // Esperar el input con margen mayor que el actionTimeout por defecto.
+  if (!ready) {
+    throw new Error(
+      `[setup] Next storefront login no fue accesible en ${loginUrl} después de 12 intentos.`,
+    );
+  }
   const email = page.getByLabel("Correo electrónico");
-  await expect(email).toBeVisible({ timeout: 60_000 });
   await email.fill(CREDENTIALS.customer.email);
   await page.getByLabel("Contraseña").fill(CREDENTIALS.customer.password);
   await page.getByRole("button", { name: "Iniciar sesión" }).click();
