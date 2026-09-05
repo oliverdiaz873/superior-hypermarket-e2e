@@ -105,9 +105,7 @@ test("@p0 product publishing: create inactive (dashboard) → activate (API) →
     await page.getByRole("searchbox", { name: "Buscar por nombre…" }).fill(productName);
     const row = page.locator('tr').filter({ hasText: productName });
     await expect(row).toBeVisible({ timeout: 15_000 });
-    // Abrir menú de acciones y seleccionar "Publicar"
-    await row.getByRole('button', { name: 'Acciones' }).click();
-    await page.getByRole('menuitem', { name: 'Publicar' }).click();
+    await row.getByRole('button', { name: 'Publicar' }).click();
     await expect(page.getByText('Producto publicado')).toBeVisible({ timeout: 15_000 });
 
     const activated = await ctx.get(`${API}/admin/products/${productId}`, {

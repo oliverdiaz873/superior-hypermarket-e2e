@@ -65,11 +65,9 @@ test("@p0 order lifecycle: Angular customer creates → dashboard confirms → c
     const body = (await resp.json()) as { data?: Array<{ id: string }> };
     expect(body.data?.some((o) => o.id === orderId)).toBeTruthy();
 
-    // Abrir menú de acciones y seleccionar "Ver detalle" (tras búsqueda q=orderId la tabla filtra a 1 fila; orderId no se muestra en la fila, se usa first())
-    const row = adminPage.locator('tbody tr').first();
-    await expect(row).toBeVisible();
-    await row.getByRole('button', { name: 'Acciones' }).click();
-    await adminPage.getByRole('menuitem', { name: 'Ver detalle' }).click();
+    const detailBtn = adminPage.getByRole("button", { name: "Ver detalle" });
+    await expect(detailBtn.first()).toBeVisible();
+    await detailBtn.first().click();
     await adminPage.waitForURL(`**/orders/${orderId}`);
     await expect(adminPage.getByText(`Pedido ${orderId}`)).toBeVisible();
 
