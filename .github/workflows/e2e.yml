@@ -146,6 +146,11 @@ jobs:
         run: npm ci
         working-directory: repos/superior-hypermarket-storefront-next
 
+      - name: Install npm 11.16.0 for Dashboard (matches packageManager)
+        run: |
+          npm install --global npm@11.16.0
+          npm --version
+
       - name: Install Dashboard dependencies
         run: npm ci
         working-directory: repos/superior-hypermarket-dashboard
