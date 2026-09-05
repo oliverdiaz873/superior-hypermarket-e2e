@@ -63,6 +63,9 @@ jobs:
           owner: ${{ github.repository_owner }}
           repositories: |
             superior-hypermarket-api
+            superior-hypermarket-storefront-angular
+            superior-hypermarket-storefront-next
+            superior-hypermarket-dashboard
             superior-hypermarket-e2e
 
       - name: Set Commit Status pending (e2e/17-tests)
